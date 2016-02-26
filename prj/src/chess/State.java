@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,7 +37,11 @@ public class State {
   
   public Piece[][] board = new Piece[8][8];
   public boolean canCastle = true; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
-  public boolean enpassantPossible = false; //https://en.wikipedia.org/wiki/En_passant
+  /*
+   * https://en.wikipedia.org/wiki/En_passant this boolean serves to mark if the last state an opponents 
+   * pawn moved "first long move" as this is the only situation when enpassant capture can be applied
+   */
+  public boolean enpassantPossible = false; 
   /**
    * Counter for the amount of moves made if no capture has been made 
    * and no pawn has been moved in the last fifty moves   
@@ -57,10 +62,11 @@ public class State {
 		board[j][1]=new Piece(PlayerColor.WHITE, PieceKind.PAWN);
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	}
-	board[0][2]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
-	board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.KING);
+
+	board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
 	
-    board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
+    board[0][0]=new Piece(null,null);
+    board[0][1]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
     board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
     board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
     board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
@@ -87,6 +93,22 @@ public class State {
   State(State original) {
 	    Utils.array2dCopy(original.board, this.board);
 	    this.whoseTurn = original.whoseTurn;
+	    this.enpassantPossible = original.enpassantPossible;
+  }
+  /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
+   * which itself is realized outside the State class
+   * @returns the number of pieces at the board
+   */
+  public int numPieces(){
+	  int num =0;
+	  for (Piece[] i : board){
+		  for (Piece j : i){
+			  if (j.getColor()!=null){
+				  num++;
+			  }
+		  }
+	  }
+	  return num;
   }
   
 
@@ -107,13 +129,12 @@ public class State {
 		if (moving.getColor()!=this.whoseTurn){
 			throw new IllegalMoveException ("You're trying to move another's player piece");
 		}
-		// Test to see if the move is valid for the particular piece
 		//if it's occupied -a) can't move b) capture
 		if (board[move.to.row][move.to.col].getColor()==this.getPlayerColor()){
 			//TODO OK for swapping the king and rook
 			throw new IllegalMoveException ("You're trying to capture your own piece");
 		}
-		
+		// Test to see if the move is valid for the particular piece
 		if (!validMoves(moving.getKind(), move.from).contains(move.to)){
 			throw new IllegalMoveException ("This is an illegal move for this type of piece");
 		}
@@ -121,6 +142,14 @@ public class State {
 		// logging exceptions to console
 		System.out.println(im.toString());
 		return this;
+	}
+	
+	
+	
+	
+	//Check for the http://en.wikipedia.org/wiki/Fifty-move_rule
+	if (this.movesWithoutCaptureNorPawn == 50){
+		this.gameover = GameOverReason.FIFTY_MOVE_RULE;
 	}
 	
 	if (board[move.to.row][move.to.col].getColor()==this.getPlayerColor().getOpposite() &&
@@ -133,6 +162,16 @@ public class State {
 	State nextState = new State(this);
 	nextState.board[move.to.getRow()][ move.to.getCol()] = nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
 	nextState.board[move.from.getRow()][ move.from.getCol()]=moving.PieceRemove();
+	//if the pawn reaches the diagonal 8 of the other player it should be promoted
+	if ((nextState.board[move.to.getRow()][move.to.getCol()].getKind()==PieceKind.PAWN) && 
+			(this.whoseTurn.toInt()*move.from.getCol()==6)||(this.whoseTurn.toInt()*move.from.getCol()==-1)){
+		nextState.board[move.to.getRow()][move.to.getCol()].setKind(ChessConsole.callForPromotion());
+	}
+	
+	/* if en passant happened we also need to remove the opponents pawn piece
+	if (nextState.enpassantPossible){
+		nextState.board[move.to.getRow()][move.from.getCol()].PieceRemove();
+	}*/
 
 	nextState.whoseTurn = this.whoseTurn.getOpposite();
 
@@ -149,12 +188,26 @@ public class State {
 			if ((this.board[to.getRow()][to.getCol()].getKind() == null) && to.isInRange(0, BOARDLENGTH)){
 				moves.add (to);
 			}
-			//if starting position is horizontal 2 it's okay to move it to 4 if the way if not occupied
+		/*	THIS SEEMS WRONG
+		 * //en passant capture: starting position is 4/5 and there is an opponents pawn neighboring yours at the moment
+			if (this.enpassantPossible == true) {
+				//if the conditions below are not valid, the en-passant opportunity is not followed
+				if((starting.col*this.whoseTurn.toInt() == 4 || starting.col*this.whoseTurn.toInt() == -3) &&
+					board[starting.getRow()][starting.getCol()].getKind() == PieceKind.PAWN &&
+					board[starting.getRow()][starting.getCol()].getColor() == this.whoseTurn.getOpposite()){
+					moves.add (to);
+				} else{
+					this.enpassantPossible = false;
+				}
+			}*/
+					
+			//if starting position is horizontal 2(7) it's okay to move it to 4(5) if the way if not occupied
 			to = new Position (starting.row, starting.col+2*this.whoseTurn.toInt());
 			if ((starting.col*this.whoseTurn.toInt() == 1 || starting.col*this.whoseTurn.toInt() == -6)
 					&& board [to.getRow()][to.getCol()].getKind() == null
 					&& board [to.getRow()][to.getCol()-1*this.whoseTurn.toInt()].getKind() == null){
 				moves.add (to);
+				//this.enpassantPossible = true; //this pawn is eligible to be captured via en passant 
 			}
 			// if it was a diagonal move  - OK when capturing
 			to = new Position (starting.row+1, starting.col+1*this.whoseTurn.toInt());
@@ -165,8 +218,7 @@ public class State {
 			if (to.isInRange(0, BOARDLENGTH) && board [to.getRow()][to.getCol()].getKind() != null){
 				moves.add (to);
 			}
-			//if diagonal 8 of the other player should be promoted!! TODO
-			//TODO en passant
+			
 			break;
 		}
 		
@@ -236,6 +288,11 @@ public class State {
 		    break;
 		}
 	  }
+	  
+	  // this means en passant possibility was not used
+	  if ((this.enpassantPossible == true) &&( kind!=PieceKind.PAWN)){
+		  this.enpassantPossible = false;
+	  }
 
 	  return moves;
   }
@@ -296,6 +353,21 @@ public class State {
 			
 		return moves;
   }
+  
+
+@Override
+public boolean equals(Object o) 
+{
+    if (o instanceof State) 
+    {
+      State s = (State) o;
+      if (Arrays.deepEquals(this.board, s.board) && this.whoseTurn.equals(s.whoseTurn) ) {
+    	  
+         return true;
+      }
+    }
+    return false;
+}
 	
 
   @Override

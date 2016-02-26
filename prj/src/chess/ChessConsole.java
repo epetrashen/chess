@@ -15,7 +15,7 @@ public class ChessConsole {
 		Move m = new Move();
 		Scanner input = new Scanner (System.in);
 		System.out.println ("\nIt's time for the move #"+number+" by "+c+".");
-		System.out.println ("Please input the current coordinates of the piece and the coordinates you wish the piece to move to, separating them by comma (i.e. e2-e4): ");
+		System.out.println ("Please input the current coordinates of the piece and the coordinates you wish the piece to move to, separating them by a dash (i.e. e2-e4): ");
 		String in = input.nextLine().toLowerCase();
 		//checking for possible incorrect input + if it's out of the board
 		while (!in.matches("[a-i][1-8]-[a-i][1-8]$")){
@@ -37,9 +37,44 @@ public class ChessConsole {
 	public static void gameOverMessage(State st){
 		switch (st.gameover){
 			case CHECK_MATE:
-				System.out.println ("The king is checkmated. "+ st.whoseTurn +" won.");
-				
+				System.out.println ("The check cannot be escaped. "+ st.whoseTurn +" won.");
+				break;
+			case FIFTY_MOVE_RULE:
+				System.out.println ("The 50-move rule is broken. Draw.");
+				break;
+			case THREEFOLD_REPETITION_RULE:
+				System.out.println ("The threefold repetition rule is broken. Draw.");
+				break;
+			case NO_AVAILABLE_MOVES:
+				System.out.println ("There's no available moves for "+ st.whoseTurn +". Draw.");
+				break;
 		}
+	}
+	
+	public static PieceKind callForPromotion(){
+		System.out.println ("You now can promote you pawn. Please input the desired piece kind, i.e. QUEEN");
+		Scanner input = new Scanner (System.in);
+		String in = input.nextLine().toUpperCase();
+		PieceKind res = null;
+		
+		while (res == null){
+			for (PieceKind pk : PieceKind.values()) {
+		        if (pk.name().equals(in.toUpperCase())) {
+		        	if (pk!=PieceKind.KING){
+		        		res = pk;}
+		        	else {
+		        		System.out.println ("You cannot promote your pawn to KING. Please try again.");
+		        	}
+		        }
+		    }
+			if (res == null){
+				System.out.println ("Bad input. Please try again:");
+				in = input.nextLine().toUpperCase();
+			}
+		}
+	    
+	    return res;
+
 	}
 
 }

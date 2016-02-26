@@ -1,4 +1,6 @@
 package chess;
+import java.util.Arrays;
+
 import games.PlayerColor;
 
 public class Piece {	
@@ -27,6 +29,10 @@ public PlayerColor getColor() {
     return kind;
   }
   
+  public void setKind(PieceKind kind) {
+	    this.kind = kind;
+}
+  
   public Piece PieceRemove(){
 	  this.color = null;
 	  this.kind = null;
@@ -36,5 +42,18 @@ public PlayerColor getColor() {
   @Override
   public String toString(){
 	  return color+" "+kind;
+  }
+  
+  @Override
+  public boolean equals(Object o) 
+  {
+      if (o instanceof Piece) 
+      {
+        Piece p = (Piece) o;
+        if (this.kind == p.kind && this.color == p.color ) {	  
+           return true;
+        }
+      }
+      return false;
   }
 }
