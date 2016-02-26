@@ -1,5 +1,4 @@
 package chess;
-import java.util.Arrays;
 
 import games.PlayerColor;
 

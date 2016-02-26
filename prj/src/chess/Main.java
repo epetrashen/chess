@@ -29,8 +29,6 @@ public class Main {
 				
 				int numSameStates = 0;
 				for (String s : prevStates){
-					System.out.println("_____________________________STORED____________");
-					System.out.println(s.toString());
 					if (s.equals(newState.toString())){
 						numSameStates++;
 					}
@@ -43,8 +41,7 @@ public class Main {
 				if (newState.numPieces()!=state.numPieces()){
 					prevStates.clear(); //if the number of pieces changed, all the previous states cannot reooccur
 				} else {
-					State toArray = new State (state);//we want to pass immutable state
-					prevStates.add(toArray.toString()); //adding state, not toString() as the turn is important
+					prevStates.add(state.toString()); //adding state
 				}
 				
 				//printing and incrementing auxiliary counter only if the move was valid

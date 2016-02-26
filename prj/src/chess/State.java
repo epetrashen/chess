@@ -15,6 +15,7 @@ import chess.Piece;
 public class State {
   
   static final int BOARDLENGTH = 8;
+  static final int FIFTY_MOVE_RULE_NUM = 50;
   
   public PlayerColor whoseTurn = PlayerColor.WHITE;
 
@@ -48,6 +49,7 @@ public class State {
    * http://en.wikipedia.org/wiki/Fifty-move_rule
    */
   public int movesWithoutCaptureNorPawn = 0;//TODO
+  
 
   // initialization in the beginning of the game
   public State() {
@@ -93,7 +95,8 @@ public class State {
   State(State original) {
 	    Utils.array2dCopy(original.board, this.board);
 	    this.whoseTurn = original.whoseTurn;
-	    this.enpassantPossible = original.enpassantPossible;
+	    this.movesWithoutCaptureNorPawn = original.movesWithoutCaptureNorPawn;
+	    this.gameover = original.gameover;
   }
   /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
    * which itself is realized outside the State class
@@ -145,13 +148,20 @@ public class State {
 	}
 	
 	
-	
-	
+	//Check whether this is being a move with capture & by a pawn
+	if (board[move.from.row][move.from.col].getKind() == PieceKind.PAWN 
+			|| (board[move.to.row][move.to.col].getKind()!=null)){ //TODO enpassant
+		this.movesWithoutCaptureNorPawn = 0;
+	} else {
+		this.movesWithoutCaptureNorPawn ++;
+	}
+
 	//Check for the http://en.wikipedia.org/wiki/Fifty-move_rule
-	if (this.movesWithoutCaptureNorPawn == 50){
+	if (this.movesWithoutCaptureNorPawn == FIFTY_MOVE_RULE_NUM){
 		this.gameover = GameOverReason.FIFTY_MOVE_RULE;
 	}
 	
+	//checking if the king is being captured TODO
 	if (board[move.to.row][move.to.col].getColor()==this.getPlayerColor().getOpposite() &&
 			board[move.to.row][move.to.col].getKind() == PieceKind.KING){
 		//this means game is over - king is captured
@@ -163,10 +173,11 @@ public class State {
 	nextState.board[move.to.getRow()][ move.to.getCol()] = nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
 	nextState.board[move.from.getRow()][ move.from.getCol()]=moving.PieceRemove();
 	//if the pawn reaches the diagonal 8 of the other player it should be promoted
-	if ((nextState.board[move.to.getRow()][move.to.getCol()].getKind()==PieceKind.PAWN) && 
-			(this.whoseTurn.toInt()*move.from.getCol()==6)||(this.whoseTurn.toInt()*move.from.getCol()==-1)){
+	if ( nextState.board[move.from.getRow()][move.from.getCol()].getKind()==PieceKind.PAWN && 
+			(this.whoseTurn.toInt()*move.from.getCol()==6 || this.whoseTurn.toInt()*move.from.getCol()==-1)){
 		nextState.board[move.to.getRow()][move.to.getCol()].setKind(ChessConsole.callForPromotion());
 	}
+	
 	
 	/* if en passant happened we also need to remove the opponents pawn piece
 	if (nextState.enpassantPossible){
