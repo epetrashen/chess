@@ -19,7 +19,7 @@ public class Main {
 		
 		int i = 1;
 		while (state.gameover == null){
-			newState = state.makeMove(ChessConsole.getMovePosition(state.whoseTurn, i));
+			newState = StateManage.makeMove(state, ChessConsole.getMovePosition(state.whoseTurn, i), false);
 			if (state.whoseTurn != newState.whoseTurn){
 				
 				/* we need to check to for threefold repetition rule - whether there already existed 2

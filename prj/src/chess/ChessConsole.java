@@ -16,10 +16,10 @@ public class ChessConsole {
 		Scanner input = new Scanner (System.in);
 		System.out.println ("\nIt's time for the move #"+number+" by "+c+".");
 		System.out.println ("Please input the current coordinates of the piece and the coordinates you wish" +
-				" the piece to move to, separating them by a dash (i.e. e2-e4). Castling should be done with o-o or o-o-o. ");
+				" the piece to move to, separating them by a dash (i.e. e2-e4; move the king appropriately for castling): ");
 		String in = input.nextLine().toLowerCase();
 		//checking for possible incorrect input + if it's out of the board
-		while (!(in.matches("[a-i][1-8]-[a-i][1-8]$"))){// || in.matches("^[o-]{1,2}o$"))){
+		while (!(in.matches("[a-i][1-8]-[a-i][1-8]$"))){
 			System.out.println ("Bad input. Please try again:");
 			in = input.nextLine().toLowerCase();
 		}
@@ -76,6 +76,10 @@ public class ChessConsole {
 	    
 	    return res;
 
+	}
+	
+	public static void printMessage (String s){
+		System.out.println (s);
 	}
 
 }

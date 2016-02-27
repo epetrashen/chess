@@ -7,7 +7,6 @@ import java.util.List;
 import games.IllegalMoveException;
 import games.PlayerColor;
 import games.Position;
-import games.Utils;
 import chess.Piece;
 
 
@@ -48,13 +47,14 @@ public class State {
    * and no pawn has been moved in the last fifty moves   
    * http://en.wikipedia.org/wiki/Fifty-move_rule
    */
-  public int movesWithoutCaptureNorPawn = 0;//TODO
+  public int movesWithoutCaptureNorPawn = 0;
   
 
   // initialization in the beginning of the game
   public State() {
 	this.whoseTurn = PlayerColor.WHITE;
 	for (int i=2; i< BOARDLENGTH-1; i++){
+	//for (int i=0; i< BOARDLENGTH; i++){
 		for (int j=0; j< BOARDLENGTH; j++){
 			board[j][i]= new Piece();
 		}
@@ -65,10 +65,9 @@ public class State {
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	}
 
-	board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
+	//board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.KING);
 	
-    board[0][0]=new Piece(null,null);
-    board[0][1]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
+    board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
     board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
     board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
     board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
@@ -85,15 +84,19 @@ public class State {
     board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
     board[6][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
     board[7][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
+	/*board[0][6]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
+	board[3][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
+	board[3][5]=new Piece(PlayerColor.WHITE, PieceKind.KING);
+	board[6][6]=new Piece(PlayerColor.WHITE, PieceKind.PAWN);*/
   }
+ 
   
-  public State(PlayerColor whoseTurn, Piece[][] boardstate){
-	  this.whoseTurn = whoseTurn;
-	  this.board = boardstate;
-  }
-  
-  State(State original) {
-	    Utils.array2dCopy(original.board, this.board);
+  public State(State original) {
+		for (int i=0; i < BOARDLENGTH; i++){
+			for (int j=0; j < BOARDLENGTH; j++){
+				board[i][j] = new Piece (original.board[i][j].getColor(),original.board[i][j].getKind());
+			}
+		}
 	    this.whoseTurn = original.whoseTurn;
 	    this.movesWithoutCaptureNorPawn = original.movesWithoutCaptureNorPawn;
 	    this.gameover = original.gameover;
@@ -121,83 +124,14 @@ public class State {
    * @return The resulting state
    * @throws IllegalMoveException if the move is not legal
    */
-  public State makeMove(Move move) {
-
-	Piece moving = board[move.from.getRow()][ move.from.getCol()];
-	try {
-		//check to see whether there is a piece of the chosen board location
-		if (moving.getColor()!=this.whoseTurn){
-			throw new IllegalMoveException ("There's no piece at the selected board location");
-		}
-		// check to see if the piece to be moved belongs to the current player
-		if (moving.getColor()!=this.whoseTurn){
-			throw new IllegalMoveException ("You're trying to move another's player piece");
-		}
-		//if it's occupied -a) can't move b) capture
-		if (board[move.to.row][move.to.col].getColor()==this.getPlayerColor()){
-			//TODO OK for swapping the king and rook
-			throw new IllegalMoveException ("You're trying to capture your own piece");
-		}
-		// Test to see if the move is valid for the particular piece
-		if (!validMoves(moving.getKind(), move.from).contains(move.to)){
-			throw new IllegalMoveException ("This is an illegal move for this type of piece");
-		}
-	} catch (IllegalMoveException im) {
-		// logging exceptions to console
-		System.out.println(im.toString());
-		return this;
-	}
-	
-	
-	//Check whether this is being a move with capture & by a pawn
-	if (board[move.from.row][move.from.col].getKind() == PieceKind.PAWN 
-			|| (board[move.to.row][move.to.col].getKind()!=null)){ //TODO enpassant
-		this.movesWithoutCaptureNorPawn = 0;
-	} else {
-		this.movesWithoutCaptureNorPawn ++;
-	}
-
-	//Check for the http://en.wikipedia.org/wiki/Fifty-move_rule
-	if (this.movesWithoutCaptureNorPawn == FIFTY_MOVE_RULE_NUM){
-		this.gameover = GameOverReason.FIFTY_MOVE_RULE;
-	}
-	
-	//checking if the king is being captured TODO
-	if (board[move.to.row][move.to.col].getColor()==this.getPlayerColor().getOpposite() &&
-			board[move.to.row][move.to.col].getKind() == PieceKind.KING){
-		//this means game is over - king is captured
-		this.gameover = GameOverReason.CHECK_MATE;
-		return this;
-	}
-	//execute the move
-	State nextState = new State(this);
-	nextState.board[move.to.getRow()][ move.to.getCol()] = nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
-	nextState.board[move.from.getRow()][ move.from.getCol()]=moving.PieceRemove();
-	//if the pawn reaches the diagonal 8 of the other player it should be promoted
-	if ( nextState.board[move.from.getRow()][move.from.getCol()].getKind()==PieceKind.PAWN && 
-			(this.whoseTurn.toInt()*move.from.getCol()==6 || this.whoseTurn.toInt()*move.from.getCol()==-1)){
-		nextState.board[move.to.getRow()][move.to.getCol()].setKind(ChessConsole.callForPromotion());
-	}
-	
-	
-	// if en passant happened we also need to remove the opponents pawn piece
-	if (nextState.enpassantPiecePosition != null 
-			&& nextState.whoseTurn.getOpposite() == nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].getColor()){
-		nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].PieceRemove();
-		nextState.enpassantPiecePosition = null; 
-	}
-
-	nextState.whoseTurn = this.whoseTurn.getOpposite();
-
-    return nextState; 
-  }
   
-  public List<Position> validMoves(PieceKind kind, Position starting){
+  
+  public List<Position> validMoves(PieceKind kind, Position starting, PlayerColor pc){
 	  List<Position> moves = new LinkedList<Position>();
 	  switch (kind){
 		case PAWN:{
 			// can move straight 1 board cell if the cell is not occupied // out of array boundaries
-			Position to = new Position (starting.getRow(), starting.getCol()+1*this.whoseTurn.toInt());
+			Position to = new Position (starting.getRow(), starting.getCol()+1*pc.toInt());
 
 			if ((this.board[to.getRow()][to.getCol()].getKind() == null) && to.isInRange(0, BOARDLENGTH)){
 				moves.add (to);
@@ -206,7 +140,7 @@ public class State {
 		  //en passant capture: starting position is 4/5 and there is an opponents pawn neighboring yours at the moment
 			if (this.enpassantPiecePosition != null) {
 				//if the conditions below are not valid, the en-passant opportunity is not followed
-				if((starting.col*this.whoseTurn.toInt() == 4 || starting.col*this.whoseTurn.toInt() == -3) &&
+				if((starting.col*pc.toInt() == 4 || starting.col*pc.toInt() == -3) &&
 					this.enpassantPiecePosition.getCol()==starting.col &&
 					(this.enpassantPiecePosition.getRow() == starting.row+1 || this.enpassantPiecePosition.getRow() == starting.row-1 )){
 						moves.add (new Position (this.enpassantPiecePosition.getRow(), this.enpassantPiecePosition.getCol()+1*whoseTurn.toInt()));
@@ -216,19 +150,19 @@ public class State {
 			}
 					
 			//if starting position is horizontal 2(7) it's okay to move it to 4(5) if the way if not occupied
-			to = new Position (starting.row, starting.col+2*this.whoseTurn.toInt());
-			if ((starting.col*this.whoseTurn.toInt() == 1 || starting.col*this.whoseTurn.toInt() == -6)
+			to = new Position (starting.row, starting.col+2*pc.toInt());
+			if ((starting.col*pc.toInt() == 1 || starting.col*pc.toInt() == -6)
 					&& board [to.getRow()][to.getCol()].getKind() == null
 					&& board [to.getRow()][to.getCol()-1*this.whoseTurn.toInt()].getKind() == null){
 				moves.add (to);
 				this.enpassantPiecePosition = to; //this pawn is potentially eligible to be captured via en passant 
 			}
 			// if it was a diagonal move  - OK when capturing
-			to = new Position (starting.row+1, starting.col+1*this.whoseTurn.toInt());
+			to = new Position (starting.row+1, starting.col+1*pc.toInt());
 			if (to.isInRange(0, BOARDLENGTH) && board [to.getRow()][to.getCol()].getKind() != null){
 				moves.add (to);
 			}
-			to = new Position (starting.row-1, starting.col+1*this.whoseTurn.toInt());
+			to = new Position (starting.row-1, starting.col+1*pc.toInt());
 			if (to.isInRange(0, BOARDLENGTH) && board [to.getRow()][to.getCol()].getKind() != null){
 				moves.add (to);
 			}
@@ -238,34 +172,34 @@ public class State {
 		
 		case ROOK:{
 			//OK to move if same horizontal/vertical + the path is free
-			moves.addAll(moveLine(starting, Direction.LEFT));
-			moves.addAll(moveLine(starting, Direction.DOWN));
-			moves.addAll(moveLine(starting, Direction.UP));
-			moves.addAll(moveLine(starting, Direction.RIGHT));
+			moves.addAll(moveLine(starting, Direction.LEFT, pc));
+			moves.addAll(moveLine(starting, Direction.DOWN, pc));
+			moves.addAll(moveLine(starting, Direction.UP, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHT, pc));
 			
 			break;
 		}
 
 		case BISHOP:{
 			//OK to move if same diagonal + the path is free
-			moves.addAll(moveLine(starting, Direction.LEFTUP));
-			moves.addAll(moveLine(starting, Direction.LEFTDOWN));
-			moves.addAll(moveLine(starting, Direction.RIGHTUP));
-			moves.addAll(moveLine(starting, Direction.RIGHTDOWN));
+			moves.addAll(moveLine(starting, Direction.LEFTUP, pc));
+			moves.addAll(moveLine(starting, Direction.LEFTDOWN, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHTUP, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHTDOWN,pc));
 			
 			break;
 		}
 		
 		case QUEEN:{
 			//OK to move if same horizontal/vertical/diagonal + the path is free
-			moves.addAll(moveLine(starting, Direction.LEFT));
-			moves.addAll(moveLine(starting, Direction.DOWN));
-			moves.addAll(moveLine(starting, Direction.UP));
-			moves.addAll(moveLine(starting, Direction.RIGHT));
-			moves.addAll(moveLine(starting, Direction.LEFTUP));
-			moves.addAll(moveLine(starting, Direction.LEFTDOWN));
-			moves.addAll(moveLine(starting, Direction.RIGHTUP));
-			moves.addAll(moveLine(starting, Direction.RIGHTDOWN));
+			moves.addAll(moveLine(starting, Direction.LEFT, pc));
+			moves.addAll(moveLine(starting, Direction.DOWN, pc));
+			moves.addAll(moveLine(starting, Direction.UP, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHT, pc));
+			moves.addAll(moveLine(starting, Direction.LEFTUP, pc));
+			moves.addAll(moveLine(starting, Direction.LEFTDOWN, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHTUP, pc));
+			moves.addAll(moveLine(starting, Direction.RIGHTDOWN, pc));
 			
 			break;
 		}
@@ -282,7 +216,18 @@ public class State {
 		            {-1, -1},
 		            {1, -1}
 		        };
-		    moves.addAll(moveOffset(starting, offsets));
+		    
+		    moves.addAll(moveOffset(starting, offsets, pc));
+		    /*need to check that the king is not moving to endangered field
+		    int n = moveOffset(starting, offsets).size();
+		    for (int k=0; k<n; k++){
+		    	System.out.println("p");
+		    	if (! isUnderRiskOfCapture (moveOffset(starting, offsets).get(k), 
+		    			this.getPlayerColor().getOpposite())){
+		    		moves.add(moveOffset(starting, offsets).get(k));
+		    	}
+		    }
+		    */
 		    break;
 		}
 		
@@ -298,7 +243,8 @@ public class State {
 		            {-1, -2},
 		            {-2, -1}
 		     };
-		    moves.addAll(moveOffset(starting, offsets));
+		    moves.addAll(moveOffset(starting, offsets, pc));
+		    
 		    break;
 		}
 	  }
@@ -316,16 +262,17 @@ public class State {
    */
   private enum Direction {RIGHT, LEFT, UP, DOWN, LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN} 
   
-  /*an auxiliary function checking whether you can move a figure within particular offestes
+  /*an auxiliary function checking whether you can move a figure within particular offsets
    *  - used for king and knight
    */
-  private List<Position> moveOffset(Position starting, int[][] offsets){
+  private List<Position> moveOffset(Position starting, int[][] offsets, PlayerColor pc){
 	    List<Position> moves = new LinkedList<Position>();
 	    Position to;
 	    for (int[] o : offsets) {
 	    	to = new Position (starting.row+o[0], starting.col+o[1]);
 	    	if (to.isInRange(0, BOARDLENGTH)){
-	    		moves.add(to);
+	    		if (this.board[starting.row+o[0]][starting.col+o[1]].getColor()!=pc)
+	    			moves.add(to);
 	    	}
 	    };
 		return moves;
@@ -333,7 +280,7 @@ public class State {
   /*an auxiliary function checking whether you can move a figure in a particular direction
    * while not getting out of the board & not jumping over pieces - used for queen, rook, bishop
    */
-  private List<Position> moveLine(Position starting, Direction dir){
+  private List<Position> moveLine(Position starting, Direction dir, PlayerColor pc){
 	    List<Position> moves = new LinkedList<Position>();
 	    int i =0, j=0;
 		Position to;
@@ -362,11 +309,26 @@ public class State {
 				to = new Position (starting.row+i, starting.col+j);
 				if (!to.isInRange(0, BOARDLENGTH))
 					break;
-				moves.add (to);
+				if (board[to.row][to.col].getColor()!=pc)
+					moves.add (to);
 			} while (board[to.row][to.col].getKind()==null);
 			
 		return moves;
   }
+ 
+ /* function returning KING position
+  * @arg player color*/
+ public Position kingPosition(PlayerColor pc){
+	for (int i=0; i < BOARDLENGTH; i++){
+		for (int j=0; j < BOARDLENGTH; j++){
+			if (board[i][j].getColor()== pc &&
+				board[i][j].getKind() == PieceKind.KING){
+					return new Position (i,j);
+			}
+		}
+	} 
+	return null;
+ }
   
 
 @Override
@@ -396,7 +358,7 @@ public boolean equals(Object o)
 		  res+= alphabet++ +" | ";
 		  for (Piece j : i){
 			  if (j.getColor()==null){
-				  res +="      | "; 
+				  res +="       | "; 
 			  } else {
 				  res += j.toString()+ " | ";
 			  }
@@ -405,4 +367,4 @@ public boolean equals(Object o)
 	  }
 	  return res;
   }
-}
+} 
