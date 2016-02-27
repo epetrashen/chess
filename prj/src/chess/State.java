@@ -39,10 +39,10 @@ public class State {
   public Piece[][] board = new Piece[8][8];
   public boolean canCastle = true; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
   /*
-   * https://en.wikipedia.org/wiki/En_passant this boolean serves to mark if the last state an opponents 
+   * https://en.wikipedia.org/wiki/En_passant this Position serves to mark if the last state an opponents 
    * pawn moved "first long move" as this is the only situation when enpassant capture can be applied
    */
-  public boolean enpassantPossible = false; 
+  public Position enpassantPiecePosition = null; 
   /**
    * Counter for the amount of moves made if no capture has been made 
    * and no pawn has been moved in the last fifty moves   
@@ -65,7 +65,7 @@ public class State {
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	}
 
-	board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
+	board[1][3]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	
     board[0][0]=new Piece(null,null);
     board[0][1]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
@@ -97,6 +97,7 @@ public class State {
 	    this.whoseTurn = original.whoseTurn;
 	    this.movesWithoutCaptureNorPawn = original.movesWithoutCaptureNorPawn;
 	    this.gameover = original.gameover;
+	    this.enpassantPiecePosition= original.enpassantPiecePosition;
   }
   /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
    * which itself is realized outside the State class
@@ -179,10 +180,12 @@ public class State {
 	}
 	
 	
-	/* if en passant happened we also need to remove the opponents pawn piece
-	if (nextState.enpassantPossible){
-		nextState.board[move.to.getRow()][move.from.getCol()].PieceRemove();
-	}*/
+	// if en passant happened we also need to remove the opponents pawn piece
+	if (nextState.enpassantPiecePosition != null 
+			&& nextState.whoseTurn.getOpposite() == nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].getColor()){
+		nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].PieceRemove();
+		nextState.enpassantPiecePosition = null; 
+	}
 
 	nextState.whoseTurn = this.whoseTurn.getOpposite();
 
@@ -199,18 +202,18 @@ public class State {
 			if ((this.board[to.getRow()][to.getCol()].getKind() == null) && to.isInRange(0, BOARDLENGTH)){
 				moves.add (to);
 			}
-		/*	THIS SEEMS WRONG
-		 * //en passant capture: starting position is 4/5 and there is an opponents pawn neighboring yours at the moment
-			if (this.enpassantPossible == true) {
+		
+		  //en passant capture: starting position is 4/5 and there is an opponents pawn neighboring yours at the moment
+			if (this.enpassantPiecePosition != null) {
 				//if the conditions below are not valid, the en-passant opportunity is not followed
 				if((starting.col*this.whoseTurn.toInt() == 4 || starting.col*this.whoseTurn.toInt() == -3) &&
-					board[starting.getRow()][starting.getCol()].getKind() == PieceKind.PAWN &&
-					board[starting.getRow()][starting.getCol()].getColor() == this.whoseTurn.getOpposite()){
-					moves.add (to);
+					this.enpassantPiecePosition.getCol()==starting.col &&
+					(this.enpassantPiecePosition.getRow() == starting.row+1 || this.enpassantPiecePosition.getRow() == starting.row-1 )){
+						moves.add (new Position (this.enpassantPiecePosition.getRow(), this.enpassantPiecePosition.getCol()+1*whoseTurn.toInt()));
 				} else{
-					this.enpassantPossible = false;
+					this.enpassantPiecePosition = null;
 				}
-			}*/
+			}
 					
 			//if starting position is horizontal 2(7) it's okay to move it to 4(5) if the way if not occupied
 			to = new Position (starting.row, starting.col+2*this.whoseTurn.toInt());
@@ -218,7 +221,7 @@ public class State {
 					&& board [to.getRow()][to.getCol()].getKind() == null
 					&& board [to.getRow()][to.getCol()-1*this.whoseTurn.toInt()].getKind() == null){
 				moves.add (to);
-				//this.enpassantPossible = true; //this pawn is eligible to be captured via en passant 
+				this.enpassantPiecePosition = to; //this pawn is potentially eligible to be captured via en passant 
 			}
 			// if it was a diagonal move  - OK when capturing
 			to = new Position (starting.row+1, starting.col+1*this.whoseTurn.toInt());
@@ -301,8 +304,8 @@ public class State {
 	  }
 	  
 	  // this means en passant possibility was not used
-	  if ((this.enpassantPossible == true) &&( kind!=PieceKind.PAWN)){
-		  this.enpassantPossible = false;
+	  if ((this.enpassantPiecePosition != null) &&( kind!=PieceKind.PAWN)){
+		  this.enpassantPiecePosition = null;
 	  }
 
 	  return moves;

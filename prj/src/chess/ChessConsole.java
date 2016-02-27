@@ -15,10 +15,11 @@ public class ChessConsole {
 		Move m = new Move();
 		Scanner input = new Scanner (System.in);
 		System.out.println ("\nIt's time for the move #"+number+" by "+c+".");
-		System.out.println ("Please input the current coordinates of the piece and the coordinates you wish the piece to move to, separating them by a dash (i.e. e2-e4): ");
+		System.out.println ("Please input the current coordinates of the piece and the coordinates you wish" +
+				" the piece to move to, separating them by a dash (i.e. e2-e4). Castling should be done with o-o or o-o-o. ");
 		String in = input.nextLine().toLowerCase();
 		//checking for possible incorrect input + if it's out of the board
-		while (!in.matches("[a-i][1-8]-[a-i][1-8]$")){
+		while (!(in.matches("[a-i][1-8]-[a-i][1-8]$"))){// || in.matches("^[o-]{1,2}o$"))){
 			System.out.println ("Bad input. Please try again:");
 			in = input.nextLine().toLowerCase();
 		}
