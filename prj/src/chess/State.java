@@ -178,9 +178,9 @@ public String toStringWithSymbols(){
 		  res +="\u3000\u2009\u2006"+alphabet;  
 	  }
 	  res +="\n";
-	  for (int i=BOARDLENGTH-1; i >= 0; i--){
+	  for (int i=BOARDLENGTH-1; i >=0; i--){
 		  res += num++ +" |";
-		  for (int j=BOARDLENGTH-1; j >=0; j--){
+		  for (int j=0; j <BOARDLENGTH; j++){
 			  if (this.board[j][i].getColor()==null){
 				  res +="\u3000\u2009\u2006|"; 
 			  } else {
