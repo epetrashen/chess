@@ -11,7 +11,6 @@ import chess.Piece;
 public class State {
   
   static final int BOARDLENGTH = 8;
-  static final int FIFTY_MOVE_RULE_NUM = 50;
   
   public PlayerColor whoseTurn = PlayerColor.WHITE;
 
@@ -62,27 +61,28 @@ public class State {
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	}*/
 
-	board[7][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
+	/*board[7][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
 	board[1][7]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
-	board[5][6]=new Piece(PlayerColor.WHITE, PieceKind.KING);
+	board[5][6]=new Piece(PlayerColor.WHITE, PieceKind.KING);*/
 	
-    /*board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
-    board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
-    board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
-    board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
-    board[4][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
-    board[5][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
-    board[6][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
-    board[7][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
+    board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
+    //board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
+    //board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
+    //board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
+    board[4][0]=new Piece(PlayerColor.WHITE, PieceKind.KING);
+    //board[5][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
+    board[2][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);
+    //board[6][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
+    board[7][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);/*
     
     board[4][5]=new Piece(PlayerColor.WHITE, PieceKind.KING);
     
     board[0][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
     board[1][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
     board[2][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
-    board[3][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);
+    board[3][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);*/
     board[4][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KING);
-    board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
+    /*board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
     board[6][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
     board[7][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);*/
 	/*board[0][6]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
@@ -92,16 +92,22 @@ public class State {
   }
  
   
-  public State(State original) {
+  public State(State original) { //deep copy
 		for (int i=0; i < BOARDLENGTH; i++){
 			for (int j=0; j < BOARDLENGTH; j++){
-				board[i][j] = new Piece (original.board[i][j].getColor(),original.board[i][j].getKind());
+				board[i][j] = new Piece (original.board[i][j].getColor(),
+						original.board[i][j].getKind(),original.board[i][j].getIfMoved());
 			}
 		}
 	    this.whoseTurn = original.whoseTurn;
 	    this.movesWithoutCaptureNorPawn = original.movesWithoutCaptureNorPawn;
 	    this.gameover = original.gameover;
 	    this.enpassantPiecePosition= original.enpassantPiecePosition;
+	    this.canCastle = original.canCastle;
+  }
+  
+  public boolean getCastlingStatus (){
+	  return this.canCastle;
   }
   /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
    * which itself is realized outside the State class

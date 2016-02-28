@@ -12,16 +12,16 @@ public class StateManage {
 	private StateManage(){};
 	
 	static final int FIFTY_MOVE_RULE_NUM = 50;
-	 static final int BOARDLENGTH = 8;
+	static final int BOARDLENGTH = 8;
 	
 	 public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
-		 for (int i=0; i < 8; i++){
-				for (int j=0; j < 8; j++){ //TODO
+		 for (int i=0; i < BOARDLENGTH ; i++){
+				for (int j=0; j < BOARDLENGTH ; j++){ //TODO
 					// for every piece of the player pc
 					if (state.board[i][j].getColor()== pc ){
 							Position from = new Position (i, j);
 							// getting the list of the valid moves 
-							for (Position p : validMoves(state, state.board[i][j].getKind(), from, state.getPlayerColor(),true)){
+							for (Position p : validMoves(state, state.board[i][j].getKind(), from, state.getPlayerColor().getOpposite(),true)){
 								// and checking if the check condition can be avoided if the move is implemented
 								State s = new State(state);
 								s.whoseTurn = s.getPlayerColor().getOpposite();
@@ -86,7 +86,16 @@ public class StateManage {
 				state.gameover = GameOverReason.FIFTY_MOVE_RULE;
 			}
 			
+			//checking if the king is somehow being captured TODO 
+			if (state.board[move.to.row][move.to.col].getColor()==state.getPlayerColor().getOpposite() &&
+					state.board[move.to.row][move.to.col].getKind() == PieceKind.KING){
+				//this means game is over - king is captured
+				ChessConsole.printMessage("You somehow managed to capture your opponent's king!");
+				state.gameover = GameOverReason.CHECK_MATE;
+			}
 			
+			//setting the boolean piece parameter that it was moved 
+			moving.setIfMoved(true);
 			//execute the move
 			State nextState = new State(state);
 			nextState.board[move.to.getRow()][ move.to.getCol()] = nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
@@ -169,6 +178,8 @@ public class StateManage {
 	  */
 	  public static List<Position> validMoves(State s, PieceKind kind, Position starting, PlayerColor pc, boolean checkForCapture){
 		  List<Position> moves = new LinkedList<Position>();
+		  
+		  //check for regular ways pieces can move
 		  switch (kind){
 			case PAWN:{
 				// can move straight 1 board cell if the cell is not occupied // out of array boundaries
@@ -258,17 +269,24 @@ public class StateManage {
 			            {1, -1}
 			        };
 			    
-			   // moves.addAll(moveOffset(starting, offsets, pc));
+			 /*let's take a look at the castling situation. Castling may only be done if the king has never moved, 
+			  * the rook involved has never moved, the squares between the king and the rook involved are unoccupied, 
+			  * the king is not in check, and the king does not cross over or end on a square in which it would be in check. 
+			  */
+			    
+			    
+		
 			    //*need to check that the king is not moving to endangered field
 			    
 			    if (checkForCapture){
-			    List <Position> kingsPossPositions = new LinkedList<Position>(moveOffset(s, starting, offsets, pc));
-			    for (int k=0; k<kingsPossPositions.size(); k++){
-			    	if (! StateManage.isUnderRiskOfCapture (s, kingsPossPositions.get(k), //TODO new??
-			    			s.getPlayerColor().getOpposite())){
-			    		moves.add(kingsPossPositions.get(k));
+			    	List <Position> kingsPossPositions = new LinkedList<Position>(moveOffset(s, starting, offsets, pc));
+			    	for (int k=0; k<kingsPossPositions.size(); k++){
+			    		if (! StateManage.isUnderRiskOfCapture (s, kingsPossPositions.get(k), 
+			    				s.getPlayerColor().getOpposite())){
+			    			moves.add(kingsPossPositions.get(k));
+			    		}
 			    	}
-			    }} else moves.addAll(moveOffset(s, starting, offsets, pc));
+			    } else moves.addAll(moveOffset(s, starting, offsets, pc));
 			    //*/
 			    break;
 			}
@@ -298,8 +316,6 @@ public class StateManage {
 
 		  return moves;
 	  }
-	  
-
 	  
 	  /*an auxiliary function checking whether you can move a figure within particular offsets
 	   *  - used for king and knight

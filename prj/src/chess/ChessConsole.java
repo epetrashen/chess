@@ -38,7 +38,7 @@ public class ChessConsole {
 	public static void gameOverMessage(State st){
 		switch (st.gameover){
 			case CHECK_MATE:
-				System.out.println ("The check cannot be escaped. "+ st.whoseTurn +" won.");
+				System.out.println ("The check cannot be escaped. "+ st.whoseTurn.getOpposite() +" won.");
 				break;
 			case FIFTY_MOVE_RULE:
 				System.out.println ("The 50-move rule is broken. Draw.");
