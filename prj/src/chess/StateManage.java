@@ -13,10 +13,12 @@ public class StateManage {
 	
 	static final int FIFTY_MOVE_RULE_NUM = 50;
 	static final int BOARDLENGTH = 8;
+	static final int ROOKROWCLOSE = 7;
+	static final int ROOKROWFAR = 0;
 	
 	 public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 		 for (int i=0; i < BOARDLENGTH ; i++){
-				for (int j=0; j < BOARDLENGTH ; j++){ //TODO
+				for (int j=0; j < BOARDLENGTH ; j++){ 
 					// for every piece of the player pc
 					if (state.board[i][j].getColor()== pc ){
 							Position from = new Position (i, j);
@@ -47,7 +49,7 @@ public class StateManage {
 		 	State state = new State (st);
 			Piece moving = state.board[move.from.getRow()][ move.from.getCol()];
 			try {
-				//check to see whether there is a piece of the chosen board location
+				//check to see whether there is a piece at the chosen board location
 				if (moving.getColor()==null){
 					throw new IllegalMoveException ("There's no piece at the selected board location");
 				}
@@ -98,13 +100,35 @@ public class StateManage {
 			moving.setIfMoved(true);
 			//execute the move
 			State nextState = new State(state);
-			nextState.board[move.to.getRow()][ move.to.getCol()] = nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
+			nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
 			nextState.board[move.from.getRow()][ move.from.getCol()]=moving.PieceRemove();
 			
 			//if the pawn reaches the diagonal 8 of the other player it should be promoted
 			if ( nextState.board[move.from.getRow()][move.from.getCol()].getKind()==PieceKind.PAWN && 
 					(nextState.whoseTurn.toInt()*move.from.getCol()==6 || nextState.whoseTurn.toInt()*move.from.getCol()==-1)){
 				nextState.board[move.to.getRow()][move.to.getCol()].setKind(ChessConsole.callForPromotion());
+			}
+			
+			// if en passant happened we also need to remove the opponents pawn piece
+			if (nextState.enpassantPiecePosition != null 
+					&& nextState.whoseTurn.getOpposite() == nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].getColor()){
+				nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].PieceRemove();
+				nextState.enpassantPiecePosition = null; 
+			}
+			
+			// if castling is in progress we need to additionally move the rook 
+			if (nextState.isCastling && nextState.board[move.to.getRow()][ move.to.getCol()].getKind() == PieceKind.KING 
+					&& Math.abs(move.to.getRow()-move.from.getRow()) == 2){
+				if (move.to.getRow()== ROOKROWCLOSE-1){ //if it was "short castling"
+					nextState.board[ROOKROWCLOSE-2][ move.to.getCol()].SetPiece(nextState.board[ROOKROWCLOSE][ move.to.getCol()]);
+					nextState.board[ROOKROWCLOSE-2][ move.to.getCol()].setIfMoved(true);
+					nextState.board[ROOKROWCLOSE][move.to.getCol()]=moving.PieceRemove();
+				}
+				if (move.to.getRow()== ROOKROWFAR+2){//"long castling"
+					nextState.board[ROOKROWFAR+3][move.to.getCol()].SetPiece(nextState.board[ROOKROWFAR][ move.to.getCol()]);
+					nextState.board[ROOKROWFAR+3][move.to.getCol()].setIfMoved(true);
+					nextState.board[ROOKROWFAR][move.to.getCol()]=moving.PieceRemove();
+				}
 			}
 			
 			//if we are actually making a move, not just testing
@@ -122,18 +146,16 @@ public class StateManage {
 						nextState.gameover = GameOverReason.CHECK_MATE;
 					}
 				}
-			}
-			
-			
-			// if en passant happened we also need to remove the opponents pawn piece
-			if (nextState.enpassantPiecePosition != null 
-					&& nextState.whoseTurn.getOpposite() == nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].getColor()){
-				nextState.board[nextState.enpassantPiecePosition.getRow()][nextState.enpassantPiecePosition.getCol()].PieceRemove();
-				nextState.enpassantPiecePosition = null; 
+				//if the player's king is endangered - is he making the move to prevent it? (otherwise not valid)
+				if(StateManage.isUnderRiskOfCapture(nextState, 
+						nextState.kingPosition(nextState.whoseTurn), nextState.whoseTurn.getOpposite())){
+						ChessConsole.printMessage(nextState.whoseTurn+"'s king is under check. A move which does not relieve the situation is invalid");
+						return state; // otherwise returning old state
+				}
 			}
 
 			nextState.whoseTurn = state.whoseTurn.getOpposite();
-
+			nextState.isCastling = false;
 		    return nextState; 
 		  }
 	 
@@ -155,9 +177,6 @@ public class StateManage {
 	 public static boolean noMoreMoves (State state, PlayerColor pc){
 		 for (int i=0; i < 8; i++){
 				for (int j=0; j < 8; j++){
-					if (j==7){
-						String y = "6";
-					}
 					// if the piece is player's piece and it has some valid moves
 					  if (state.board[i][j].getColor()==pc &&
 							  ! validMoves(state, state.board[i][j].getKind(), new Position (i,j), pc, true).isEmpty()){
@@ -269,20 +288,47 @@ public class StateManage {
 			            {1, -1}
 			        };
 			    
-			 /*let's take a look at the castling situation. Castling may only be done if the king has never moved, 
+			  /*let's take a look at the castling situation. Castling may only be done if the king has never moved, 
 			  * the rook involved has never moved, the squares between the king and the rook involved are unoccupied, 
 			  * the king is not in check, and the king does not cross over or end on a square in which it would be in check. 
 			  */
-			    
-			    
+			    if (checkForCapture && !s.isCastling &&
+			    		!s.board[starting.row][starting.col].getIfMoved() ){//castling was not yet performed and the king was not moved
+			    		
+			    	//"short castling"
+			    		if (!s.board[ROOKROWCLOSE][starting.col].getIfMoved() &&
+			    				s.board[ROOKROWCLOSE-1][starting.col].getKind() == null &&
+			    						s.board[ROOKROWCLOSE-2][starting.col].getKind() == null &&
+			    						!StateManage.isUnderRiskOfCapture(s, new Position (ROOKROWCLOSE-1, starting.col), pc.getOpposite()) &&
+			    						!StateManage.isUnderRiskOfCapture(s, new Position (ROOKROWCLOSE-2, starting.col), pc.getOpposite()) &&
+			    						!StateManage.isUnderRiskOfCapture(s, s.kingPosition(pc), pc.getOpposite()) 
+			    						){
+			    			moves.add(new Position(ROOKROWCLOSE-1, starting.col));
+			    			s.isCastling = true;
+			    		}
+			    		
+				    	//"long castling"
+			    		if (!s.board[ROOKROWFAR][starting.col].getIfMoved() &&
+			    				s.board[ROOKROWFAR+1][starting.col].getKind() == null &&
+			    						s.board[ROOKROWFAR+2][starting.col].getKind() == null &&
+			    								s.board[ROOKROWFAR+3][starting.col].getKind() == null &&
+			    						!StateManage.isUnderRiskOfCapture(s, new Position (ROOKROWFAR+2, starting.col), pc.getOpposite()) &&
+			    						!StateManage.isUnderRiskOfCapture(s, new Position (ROOKROWFAR+3, starting.col), pc.getOpposite()) &&
+			    						!StateManage.isUnderRiskOfCapture(s, s.kingPosition(pc), pc.getOpposite()) 
+			    						){
+			    			moves.add(new Position(ROOKROWFAR+2, starting.col));
+			    			//we are remembering the position of the rook to be moved to move it later
+			    			s.isCastling = true;
+			    		}
+			    	
+			    }
 		
 			    //*need to check that the king is not moving to endangered field
 			    
 			    if (checkForCapture){
 			    	List <Position> kingsPossPositions = new LinkedList<Position>(moveOffset(s, starting, offsets, pc));
 			    	for (int k=0; k<kingsPossPositions.size(); k++){
-			    		if (! StateManage.isUnderRiskOfCapture (s, kingsPossPositions.get(k), 
-			    				s.getPlayerColor().getOpposite())){
+			    		if (! StateManage.isUnderRiskOfCapture (s, kingsPossPositions.get(k), pc.getOpposite())){
 			    			moves.add(kingsPossPositions.get(k));
 			    		}
 			    	}
@@ -309,7 +355,7 @@ public class StateManage {
 			}
 		  }
 		  
-		  // this means en passant possibility was not used
+		  // if the other kind of figure was moved - means en passant possibility was not used
 		  if ((s.enpassantPiecePosition != null) &&( kind!=PieceKind.PAWN)){
 			  s.enpassantPiecePosition = null;
 		  }

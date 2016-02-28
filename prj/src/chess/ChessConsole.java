@@ -31,7 +31,7 @@ public class ChessConsole {
 	}
 	
 	public static void printBoardState(State s){
-		System.out.println (s.toString());
+		System.out.println (s.toStringWithSymbols());
 	}
 	
 	

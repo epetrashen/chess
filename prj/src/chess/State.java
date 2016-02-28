@@ -32,8 +32,8 @@ public class State {
   
   
   public Piece[][] board = new Piece[8][8];
-  public boolean canCastle = true; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
-  /*
+  public boolean isCastling = false; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
+  /**
    * https://en.wikipedia.org/wiki/En_passant this Position serves to mark if the last state an opponents 
    * pawn moved "first long move" as this is the only situation when enpassant capture can be applied
    */
@@ -49,46 +49,39 @@ public class State {
   // initialization in the beginning of the game
   public State() {
 	this.whoseTurn = PlayerColor.WHITE;
-	//for (int i=2; i< BOARDLENGTH-1; i++){
-	for (int i=0; i< BOARDLENGTH; i++){
+	for (int i=2; i< BOARDLENGTH-1; i++){
+	//for (int i=0; i< BOARDLENGTH; i++){
 		for (int j=0; j< BOARDLENGTH; j++){
 			board[j][i]= new Piece();
 		}
 	}
 	
-	/*for (int j=0; j< BOARDLENGTH; j++){
+	for (int j=0; j< BOARDLENGTH; j++){
 		board[j][1]=new Piece(PlayerColor.WHITE, PieceKind.PAWN);
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
-	}*/
-
-	/*board[7][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
+	}
+	/*board[5][6]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
+	board[7][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
 	board[1][7]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
 	board[5][6]=new Piece(PlayerColor.WHITE, PieceKind.KING);*/
 	
     board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
-    //board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
-    //board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
-    //board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
+    board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
+    board[2][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
+    board[3][0]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
     board[4][0]=new Piece(PlayerColor.WHITE, PieceKind.KING);
-    //board[5][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
-    board[2][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);
-    //board[6][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
-    board[7][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);/*
-    
-    board[4][5]=new Piece(PlayerColor.WHITE, PieceKind.KING);
+    board[5][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
+    board[6][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
+    board[7][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
     
     board[0][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
     board[1][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
     board[2][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
-    board[3][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);*/
+    board[3][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.QUEEN);
     board[4][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KING);
-    /*board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
+    board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
     board[6][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
-    board[7][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);*/
-	/*board[0][6]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
-	board[3][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
-	board[3][5]=new Piece(PlayerColor.WHITE, PieceKind.KING);
-	board[6][6]=new Piece(PlayerColor.WHITE, PieceKind.PAWN);*/
+    board[7][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
   }
  
   
@@ -103,11 +96,11 @@ public class State {
 	    this.movesWithoutCaptureNorPawn = original.movesWithoutCaptureNorPawn;
 	    this.gameover = original.gameover;
 	    this.enpassantPiecePosition= original.enpassantPiecePosition;
-	    this.canCastle = original.canCastle;
+	    this.isCastling = original.isCastling;
   }
   
   public boolean getCastlingStatus (){
-	  return this.canCastle;
+	  return this.isCastling;
   }
   /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
    * which itself is realized outside the State class
@@ -168,7 +161,7 @@ public boolean equals(Object o)
 		  res+= alphabet++ +" | ";
 		  for (Piece j : i){
 			  if (j.getColor()==null){
-				  res +="       | "; 
+				  res +="________|"; 
 			  } else {
 				  res += j.toString()+ " | ";
 			  }
@@ -177,4 +170,44 @@ public boolean equals(Object o)
 	  }
 	  return res;
   }
+
+public String toStringWithSymbols(){
+	  String res = "    ";
+	  int num = 1;
+	  for (char alphabet = 'a'; alphabet<='h';alphabet ++){
+		  res +="\u3000\u2009\u2006"+alphabet;  
+	  }
+	  res +="\n";
+	  for (int i=BOARDLENGTH-1; i >= 0; i--){
+		  res += num++ +" |";
+		  for (int j=BOARDLENGTH-1; j >=0; j--){
+			  if (this.board[j][i].getColor()==null){
+				  res +="\u3000\u2009\u2006|"; 
+			  } else {
+			  	  switch (this.board[j][i].getKind()){
+			  	  	case KING:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2654" : "\u265A")+"|";
+			  	  		break;
+			  	  	case QUEEN:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2655" : "\u265B" )+"|";
+			  	  		break;
+			  	  	case ROOK:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2656" : "\u265C")+"|";
+			  	  		break;
+			  	  	case BISHOP:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2657" : "\u265D")+"|";
+			  	  		break;
+			  	  	case KNIGHT:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2658" : "\u265E")+"|";
+			  	  		break;
+			  	  	case PAWN:
+			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2659" : "\u265F")+"|";
+			  	  		break;
+			  	  }
+			  }
+		  }
+		  res += "\n";
+	  }
+	  return res;
+	}
 } 
