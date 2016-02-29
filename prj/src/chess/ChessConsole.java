@@ -24,7 +24,7 @@ public class ChessConsole {
 		
 		int i = 1;
 		while (state.getGameOverReason() == null){
-			newState = StateManage.makeMove(state, ChessConsole.getMovePosition(state.getPlayerColor(), i), false);
+			newState = State.makeMove(state, ChessConsole.getMovePosition(state.getPlayerColor(), i), false);
 			if (state.getPlayerColor() != newState.getPlayerColor()){
 				
 				/* we need to check to for threefold repetition rule - whether there already existed 2
