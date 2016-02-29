@@ -3,8 +3,8 @@ package games;
 
 public class Position {
 
-	 public int row;
-	 public int col;
+	 private int row;
+	 private int col;
 
      public Position(int row, int col) {
 	 this.row = row;
@@ -19,6 +19,9 @@ public class Position {
 		return col;
 	}
 	
+	/**
+	 * describes whether both row and column are within certain range (normally, board)
+	 */
 	public boolean isInRange (int min, int max){
 		return row >=min && row <max && col >=min && col < max ? true : false;
 	}

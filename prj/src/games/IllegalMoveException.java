@@ -1,6 +1,6 @@
 package games;
 
-/* Describe an illegal move.
+/** Describes an illegal move.
 */
 public class IllegalMoveException extends RuntimeException {
 

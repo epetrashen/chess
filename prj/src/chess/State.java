@@ -12,11 +12,7 @@ public class State {
   
   static final int BOARDLENGTH = 8;
   
-  public PlayerColor whoseTurn = PlayerColor.WHITE;
-
-	  public PlayerColor getPlayerColor() {
-	    return whoseTurn;
-	  }
+  private PlayerColor whoseTurn = PlayerColor.WHITE;
 
   /**
    * Reasons why the chess game ended: http://en.wikipedia.org/wiki/Chess#End_of_the_game
@@ -28,27 +24,44 @@ public class State {
     CHECK_MATE,
   }
   
-  public GameOverReason gameover = null;
+  private GameOverReason gameover = null;
   
   
-  public Piece[][] board = new Piece[8][8];
-  public boolean isCastling = false; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
+  protected Piece[][] board = new Piece[8][8];
+  private boolean isCastling = false; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
   /**
    * https://en.wikipedia.org/wiki/En_passant this Position serves to mark if the last state an opponents 
    * pawn moved "first long move" as this is the only situation when enpassant capture can be applied
    */
-  public Position enpassantPiecePosition = null; 
+  private Position enpassantPiecePosition = null; 
   /**
    * Counter for the amount of moves made if no capture has been made 
    * and no pawn has been moved in the last fifty moves   
    * http://en.wikipedia.org/wiki/Fifty-move_rule
    */
-  public int movesWithoutCaptureNorPawn = 0;
+  protected int movesWithoutCaptureNorPawn = 0;
   
+  public PlayerColor getPlayerColor() {
+	    return whoseTurn;
+  }
+  
+  public void setPlayerColor(PlayerColor pc){
+	  this.whoseTurn = pc;
+  }
+
+  public GameOverReason getGameOverReason() {
+	    return this.gameover;
+  }
+  
+  public void setGameOverReason(GameOverReason gameover){
+	  this.gameover = gameover;
+  }
 
   // initialization in the beginning of the game
   public State() {
+	  
 	this.whoseTurn = PlayerColor.WHITE;
+	
 	for (int i=2; i< BOARDLENGTH-1; i++){
 	//for (int i=0; i< BOARDLENGTH; i++){
 		for (int j=0; j< BOARDLENGTH; j++){
@@ -60,10 +73,6 @@ public class State {
 		board[j][1]=new Piece(PlayerColor.WHITE, PieceKind.PAWN);
 		board[j][BOARDLENGTH-2]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
 	}
-	/*board[5][6]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
-	board[7][7]=new Piece(PlayerColor.BLACK, PieceKind.KING);
-	board[1][7]=new Piece(PlayerColor.WHITE, PieceKind.QUEEN);
-	board[5][6]=new Piece(PlayerColor.WHITE, PieceKind.KING);*/
 	
     board[0][0]=new Piece(PlayerColor.WHITE, PieceKind.ROOK);
     board[1][0]=new Piece(PlayerColor.WHITE, PieceKind.KNIGHT);
@@ -102,7 +111,20 @@ public class State {
   public boolean getCastlingStatus (){
 	  return this.isCastling;
   }
-  /* an auxiliary function required for THREEFOLD_REPETITION_RULE 
+  
+  public void setCastlingStatus (boolean isCastling){
+	  this.isCastling = isCastling;
+  }
+  
+  public Position getEnpassantPosition (){
+	  return this.enpassantPiecePosition;
+  }
+  
+  public void setEmpassantPosition (Position p){
+	  this.enpassantPiecePosition = p;
+  }
+  
+  /** an auxiliary function required for THREEFOLD_REPETITION_RULE 
    * which itself is realized outside the State class
    * @returns the number of pieces at the board
    */
@@ -119,7 +141,7 @@ public class State {
   }
   
  
- /* function returning KING position
+ /** function returning KING position
   * @arg player color*/
  public Position kingPosition(PlayerColor pc){
 	for (int i=0; i < BOARDLENGTH; i++){
@@ -148,38 +170,42 @@ public boolean equals(Object o)
     return false;
 }
 	
-
+/**
+ * returns string with the state of the board where letters are used to indicate pieces
+ */
   @Override
   public String toString(){
-	  String res = " ";
-	  char alphabet = 'a';
-	  for (int num = 1; num<=BOARDLENGTH;num ++){
-		  res +="        "+num;  
+	  String res = "   ";
+	  int num = 8;
+	  for (char alphabet = 'a'; alphabet<='h';alphabet ++){
+		  res +="    "+alphabet+"    ";  
 	  }
 	  res +="\n";
-	  for (Piece[] i : board){
-		  res+= alphabet++ +" | ";
-		  for (Piece j : i){
-			  if (j.getColor()==null){
-				  res +="________|"; 
+	  for (int i=BOARDLENGTH-1; i >=0; i--){
+		  res += num-- +" | ";
+		  for (int j=0; j <BOARDLENGTH; j++){
+			  if (this.board[j][i].getColor()==null){
+				  res +="_______|_"; 
 			  } else {
-				  res += j.toString()+ " | ";
+				  res += this.board[j][i].toString().substring(0, 6)+ " | ";
 			  }
 		  }
 	  res += "\n";
 	  }
 	  return res;
   }
-
+/**
+ * returns string with the state of the board where ascii chess characters are used
+ */
 public String toStringWithSymbols(){
 	  String res = "    ";
-	  int num = 1;
+	  int num = 8;
 	  for (char alphabet = 'a'; alphabet<='h';alphabet ++){
 		  res +="\u3000\u2009\u2006"+alphabet;  
 	  }
 	  res +="\n";
 	  for (int i=BOARDLENGTH-1; i >=0; i--){
-		  res += num++ +" |";
+		  res += num-- +" |";
 		  for (int j=0; j <BOARDLENGTH; j++){
 			  if (this.board[j][i].getColor()==null){
 				  res +="\u3000\u2009\u2006|"; 
@@ -207,6 +233,10 @@ public String toStringWithSymbols(){
 			  }
 		  }
 		  res += "\n";
+	  }
+	  res += "    ";
+	  for (char alphabet = 'a'; alphabet<='h';alphabet ++){
+		  res +="\u3000\u2009\u2006"+alphabet;  
 	  }
 	  return res;
 	}
