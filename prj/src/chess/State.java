@@ -15,6 +15,10 @@ import chess.Piece;
 public class State {
   
   static final int BOARDLENGTH = 8;
+  static final int FIFTY_MOVE_RULE_NUM = 50;
+  //2 variables required for castling
+  static final int ROOKROWCLOSE = 7;
+  static final int ROOKROWFAR = 0;
   
   private PlayerColor whoseTurn = PlayerColor.WHITE;
 
@@ -31,7 +35,7 @@ public class State {
   private GameOverReason gameover = null;
   
   
-  protected Piece[][] board = new Piece[8][8];
+  private Piece[][] board = new Piece[8][8];
   private boolean isCastling = false; //http://www.chesscorner.com/tutorial/basic/castling/castle.htm
   /**
    * https://en.wikipedia.org/wiki/En_passant this Position serves to mark if the last state an opponents 
@@ -95,12 +99,7 @@ public class State {
     board[5][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.BISHOP);
     board[6][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.KNIGHT);
     board[7][BOARDLENGTH-1]=new Piece(PlayerColor.BLACK, PieceKind.ROOK);
-    
-	board[3][3]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
-	board[3][1]=new Piece(PlayerColor.BLACK, PieceKind.PAWN);
-	
-    board[5][0]=new Piece(PlayerColor.WHITE, PieceKind.KING);
-    board[4][0]=new Piece(PlayerColor.WHITE, PieceKind.BISHOP);
+
   }
  
   
@@ -132,6 +131,10 @@ public class State {
   
   public void setEmpassantPosition (Position p){
 	  this.enpassantPiecePosition = p;
+  }
+  
+  public Piece getCell (int i, int j){
+	  return this.board[i][j];
   }
   
   /** an auxiliary function required for THREEFOLD_REPETITION_RULE 
@@ -194,10 +197,10 @@ public boolean equals(Object o)
 	  for (int i=BOARDLENGTH-1; i >=0; i--){
 		  res += num-- +" | ";
 		  for (int j=0; j <BOARDLENGTH; j++){
-			  if (this.board[j][i].getColor()==null){
+			  if (this.getCell(j, i).getColor()==null){
 				  res +="_______|_"; 
 			  } else {
-				  res += this.board[j][i].toString().substring(0, 6)+ " | ";
+				  res += this.getCell(j, i).toString().substring(0, 6)+ " | ";
 			  }
 		  }
 	  res += "\n";
@@ -217,27 +220,27 @@ public String toStringWithSymbols(){
 	  for (int i=BOARDLENGTH-1; i >=0; i--){
 		  res += num-- +" |";
 		  for (int j=0; j <BOARDLENGTH; j++){
-			  if (this.board[j][i].getColor()==null){
+			  if (this.getCell(j,i).getColor()==null){
 				  res +="\u3000\u2009\u2006|"; 
 			  } else {
-			  	  switch (this.board[j][i].getKind()){
+			  	  switch (this.getCell(j, i).getKind()){
 			  	  	case KING:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2654" : "\u265A")+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2654" : "\u265A")+"|";
 			  	  		break;
 			  	  	case QUEEN:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2655" : "\u265B" )+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2655" : "\u265B" )+"|";
 			  	  		break;
 			  	  	case ROOK:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2656" : "\u265C")+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2656" : "\u265C")+"|";
 			  	  		break;
 			  	  	case BISHOP:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2657" : "\u265D")+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2657" : "\u265D")+"|";
 			  	  		break;
 			  	  	case KNIGHT:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2658" : "\u265E")+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2658" : "\u265E")+"|";
 			  	  		break;
 			  	  	case PAWN:
-			  	  		res += ((this.board[j][i].getColor() == PlayerColor.WHITE) ? "\u2659" : "\u265F")+"|";
+			  	  		res += ((this.getCell(j,i).getColor() == PlayerColor.WHITE) ? "\u2659" : "\u265F")+"|";
 			  	  		break;
 			  	  }
 			  }
@@ -251,11 +254,6 @@ public String toStringWithSymbols(){
 	  return res;
 	}
 
-static final int FIFTY_MOVE_RULE_NUM = 50;
-// 2 variables required for castling
-static final int ROOKROWCLOSE = 7;
-static final int ROOKROWFAR = 0;
-
 /**
  * function called in case of check in a specific @param state
  * @param pc - player color who's under check
@@ -265,10 +263,10 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 	 for (int i=0; i < BOARDLENGTH ; i++){
 			for (int j=0; j < BOARDLENGTH ; j++){ 
 				// for every piece of the player pc
-				if (state.board[i][j].getColor()== pc ){
+				if (state.getCell(i,j).getColor()== pc ){
 						Position from = new Position (i, j);
 						// getting the list of the valid moves 
-						for (Position p : validMoves(state, state.board[i][j].getKind(), from, state.getPlayerColor().getOpposite(),true, false)){
+						for (Position p : validMoves(state, state.getCell(i, j).getKind(), from, state.getPlayerColor().getOpposite(),true, false)){
 							// and checking if the check condition can be avoided if the move is implemented
 							State s = new State(state);
 							s.setPlayerColor(s.getPlayerColor().getOpposite());
@@ -292,7 +290,7 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
   
  public static State makeMove(State st, Move move, boolean checkForCheck) {
 	 	State state = new State (st);
-		Piece moving = state.board[move.from.getRow()][ move.from.getCol()];
+		Piece moving = state.getCell(move.getFrom().getRow(), move.getFrom().getCol());
 		try {
 			//check to see whether there is a piece at the chosen board location
 			if (moving.getColor()==null){
@@ -303,12 +301,12 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 				throw new IllegalMoveException ("You're trying to move another's player piece");
 			}
 			//if it's occupied -a) can't move b) capture
-			if (state.board[move.to.getRow()][move.to.getCol()].getColor()==state.getPlayerColor()){
+			if (state.getCell(move.getTo().getRow(), move.getTo().getCol()).getColor()==state.getPlayerColor()){
 				//TODO OK for swapping the king and rook
 				throw new IllegalMoveException ("You're trying to capture your own piece");
 			}
 			// Test to see if the move is valid for the particular piece
-			if (!validMoves(state, moving.getKind(), move.from, state.getPlayerColor(),true, true).contains(move.to)){
+			if (!validMoves(state, moving.getKind(), move.getFrom(), state.getPlayerColor(),true, true).contains(move.getTo())){
 				throw new IllegalMoveException ("This is an illegal move for this type of piece");
 			}
 		} catch (IllegalMoveException im) {
@@ -321,8 +319,8 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 		
 		
 		//Check whether this is being a move with capture & by a pawn
-		if (state.board[move.from.getRow()][move.from.getCol()].getKind() == PieceKind.PAWN 
-				|| (state.board[move.to.getRow()][move.to.getCol()].getKind()!=null)){ 
+		if (state.getCell(move.getFrom().getRow(), move.getFrom().getCol()).getKind() == PieceKind.PAWN 
+				|| (state.getCell(move.getTo().getRow(), move.getTo().getCol()).getKind()!=null)){ 
 			state.movesWithoutCaptureNorPawn = 0;
 		} else {
 			state.movesWithoutCaptureNorPawn ++;
@@ -333,10 +331,10 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 			state.setGameOverReason(GameOverReason.FIFTY_MOVE_RULE);
 		}
 		
-		//checking if the king is somehow being captured TODO 
-		if (state.board[move.to.getRow()][move.to.getCol()].getColor()==state.getPlayerColor().getOpposite() &&
-				state.board[move.to.getRow()][move.to.getCol()].getKind() == PieceKind.KING){
-			//this means game is over - king is captured
+		//checking if the king is somehow being captured (which really should not happen but just in case) 
+		if (state.getCell(move.getTo().getRow(), move.getTo().getCol()).getColor()==state.getPlayerColor().getOpposite() &&
+				state.getCell(move.getTo().getRow(), move.getTo().getCol()).getKind() == PieceKind.KING){
+			//this means game is over
 			ChessConsole.printMessage("You somehow managed to capture your opponent's king!");
 			state.setGameOverReason(GameOverReason.CHECK_MATE);
 		}
@@ -345,34 +343,34 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 		moving.setIfMoved(true);
 		//execute the move
 		State nextState = new State(state);
-		nextState.board[move.to.getRow()][ move.to.getCol()].SetPiece(moving);
-		nextState.board[move.from.getRow()][ move.from.getCol()]=moving.PieceRemove();
+		nextState.getCell(move.getTo().getRow(), move.getTo().getCol()).SetPiece(moving);
+		nextState.getCell(move.getFrom().getRow(), move.getFrom().getCol()).PieceRemove();
 		
 		//if the pawn reaches the diagonal 8 of the other player it should be promoted
-		if ( nextState.board[move.from.getRow()][move.from.getCol()].getKind()==PieceKind.PAWN && 
-				(nextState.getPlayerColor().toInt()*move.from.getCol()==6 || nextState.getPlayerColor().toInt()*move.from.getCol()==-1)){
-			nextState.board[move.to.getRow()][move.to.getCol()].setKind(ChessConsole.callForPromotion());
+		if ( nextState.getCell(move.getTo().getRow(), move.getTo().getCol()).getKind()==PieceKind.PAWN && 
+				(nextState.getPlayerColor().toInt()*move.getFrom().getCol()==6 || nextState.getPlayerColor().toInt()*move.getFrom().getCol()==-1)){
+			nextState.getCell(move.getTo().getRow(), move.getTo().getCol()).setKind(ChessConsole.callForPromotion());
 		}
 		
 		// if en passant happened we also need to remove the opponents pawn piece
 		if (nextState.getEnpassantPosition() != null 
-				&& nextState.getPlayerColor().getOpposite() == nextState.board[nextState.getEnpassantPosition().getRow()][nextState.getEnpassantPosition().getCol()].getColor()){
-			nextState.board[nextState.getEnpassantPosition().getRow()][nextState.getEnpassantPosition().getCol()].PieceRemove();
+				&& nextState.getPlayerColor().getOpposite() == nextState.getCell(nextState.getEnpassantPosition().getRow(), nextState.getEnpassantPosition().getCol()).getColor()){
+			nextState.getCell(nextState.getEnpassantPosition().getRow(), nextState.getEnpassantPosition().getCol()).PieceRemove();
 			nextState.setEmpassantPosition(null); 
 		}
 		
 		// if castling is in progress we need to additionally move the rook 
-		if (nextState.getCastlingStatus() && nextState.board[move.to.getRow()][ move.to.getCol()].getKind() == PieceKind.KING 
-				&& Math.abs(move.to.getRow()-move.from.getRow()) == 2){
-			if (move.to.getRow()== ROOKROWCLOSE-1){ //if it was "short castling"
-				nextState.board[ROOKROWCLOSE-2][ move.to.getCol()].SetPiece(nextState.board[ROOKROWCLOSE][ move.to.getCol()]);
-				nextState.board[ROOKROWCLOSE-2][ move.to.getCol()].setIfMoved(true);
-				nextState.board[ROOKROWCLOSE][move.to.getCol()]=moving.PieceRemove();
+		if (nextState.getCastlingStatus() && nextState.getCell(move.getTo().getRow(), move.getTo().getCol()).getKind() == PieceKind.KING 
+				&& Math.abs(move.getTo().getRow()-move.getFrom().getRow()) == 2){
+			if (move.getTo().getRow()== ROOKROWCLOSE-1){ //if it was "short castling"
+				nextState.getCell(ROOKROWCLOSE-2, move.getTo().getCol()).SetPiece(nextState.getCell(ROOKROWCLOSE, move.getTo().getCol()));
+				nextState.getCell(ROOKROWCLOSE-2,  move.getTo().getCol()).setIfMoved(true);
+				nextState.getCell(ROOKROWCLOSE, move.getTo().getCol()).PieceRemove();
 			}
-			if (move.to.getRow()== ROOKROWFAR+2){//"long castling"
-				nextState.board[ROOKROWFAR+3][move.to.getCol()].SetPiece(nextState.board[ROOKROWFAR][ move.to.getCol()]);
-				nextState.board[ROOKROWFAR+3][move.to.getCol()].setIfMoved(true);
-				nextState.board[ROOKROWFAR][move.to.getCol()]=moving.PieceRemove();
+			if (move.getTo().getRow()== ROOKROWFAR+2){//"long castling"
+				nextState.getCell(ROOKROWFAR+3, move.getTo().getCol()).SetPiece(nextState.getCell(ROOKROWFAR, move.getTo().getCol()));
+				nextState.getCell(ROOKROWFAR+3 , move.getTo().getCol()).setIfMoved(true);
+				nextState.getCell(ROOKROWFAR, move.getTo().getCol()).PieceRemove();
 			}
 		}
 		
@@ -391,10 +389,10 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 					nextState.setGameOverReason(GameOverReason.CHECK_MATE);
 				}
 			}
-			//if the player's king is endangered - is he making the move to prevent it? (otherwise not valid)
+			//if the player's king is endangered - is he making the move to prevent it? (otherwise not valid) - same for putting the king under check
 			if(State.isUnderRiskOfCapture(nextState, 
 					nextState.kingPosition(nextState.getPlayerColor()), nextState.getPlayerColor().getOpposite())){
-					ChessConsole.printMessage(nextState.getPlayerColor()+"'s king is under check. A move which does not relieve the situation is invalid");
+					ChessConsole.printMessage("Like that, "+nextState.getPlayerColor()+"'s king is under check. This move is invalid");
 					return state; // otherwise returning old state
 			}
 		}
@@ -411,8 +409,8 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 	for (int i=0; i < 8; i++){
 		for (int j=0; j < 8; j++){
 			// if the piece is opponent's piece and the position is question is among its valid moves
-			  if (state.board[i][j].getColor()==opponent &&
-					  validMoves(state, state.board[i][j].getKind(), new Position(i,j), opponent, false, false).contains(position)){
+			  if (state.getCell(i, j).getColor()==opponent &&
+					  validMoves(state, state.getCell(i, j).getKind(), new Position(i,j), opponent, false, false).contains(position)){
 				  return true;}
 		}
 	}
@@ -423,8 +421,8 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 	 for (int i=0; i < 8; i++){
 			for (int j=0; j < 8; j++){
 				// if the piece is player's piece and it has some valid moves
-				  if (state.board[i][j].getColor()==pc &&
-						  ! validMoves(state, state.board[i][j].getKind(), new Position (i,j), pc, true, false).isEmpty()){
+				  if (state.getCell(i, j).getColor()==pc &&
+						  ! validMoves(state, state.getCell(i, j).getKind(), new Position (i,j), pc, true, false).isEmpty()){
 					  return false;
 				  }
 			}
@@ -451,7 +449,7 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 			// can move straight 1 board cell if the cell is not occupied // out of array boundaries
 			Position to = new Position (starting.getRow(), starting.getCol()+1*pc.toInt());
 
-			if (to.isInRange(0, BOARDLENGTH) &&(s.board[to.getRow()][to.getCol()].getKind() == null)){
+			if (to.isInRange(0, BOARDLENGTH) &&(s.getCell(to.getRow(), to.getCol()).getKind() == null)){
 				moves.add (to);
 			}
 		
@@ -544,12 +542,12 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 		  * the king is not in check, and the king does not cross over or end on a square in which it would be in check. 
 		  */
 		    if (checkForCapture && !s.getCastlingStatus() &&
-		    		!s.board[starting.getRow()][starting.getCol()].getIfMoved() ){//castling was not yet performed and the king was not moved
+		    		!s.getCell(starting.getRow(), starting.getCol()).getIfMoved() ){//castling was not yet performed and the king was not moved
 		    		
 		    	//"short castling"
-		    		if (!s.board[ROOKROWCLOSE][starting.getCol()].getIfMoved() &&
-		    				s.board[ROOKROWCLOSE-1][starting.getCol()].getKind() == null &&
-		    						s.board[ROOKROWCLOSE-2][starting.getCol()].getKind() == null &&
+		    		if (!s.getCell(ROOKROWCLOSE, starting.getCol()).getIfMoved() &&
+		    				s.getCell(ROOKROWCLOSE-1, starting.getCol()).getKind() == null &&
+		    						s.getCell(ROOKROWCLOSE-2, starting.getCol()).getKind() == null &&
 		    						!State.isUnderRiskOfCapture(s, new Position (ROOKROWCLOSE-1, starting.getCol()), pc.getOpposite()) &&
 		    						!State.isUnderRiskOfCapture(s, new Position (ROOKROWCLOSE-2, starting.getCol()), pc.getOpposite()) &&
 		    						!State.isUnderRiskOfCapture(s, s.kingPosition(pc), pc.getOpposite()) 
@@ -559,10 +557,10 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 		    		}
 		    		
 			    	//"long castling"
-		    		if (!s.board[ROOKROWFAR][starting.getCol()].getIfMoved() &&
-		    				s.board[ROOKROWFAR+1][starting.getCol()].getKind() == null &&
-		    						s.board[ROOKROWFAR+2][starting.getCol()].getKind() == null &&
-		    								s.board[ROOKROWFAR+3][starting.getCol()].getKind() == null &&
+		    		if (!s.getCell(ROOKROWFAR, starting.getCol()).getIfMoved() &&
+		    				s.getCell(ROOKROWFAR+1, starting.getCol()).getKind() == null &&
+		    						s.getCell(ROOKROWFAR+2, starting.getCol()).getKind() == null &&
+		    								s.getCell(ROOKROWFAR+3, starting.getCol()).getKind() == null &&
 		    						!State.isUnderRiskOfCapture(s, new Position (ROOKROWFAR+2, starting.getCol()), pc.getOpposite()) &&
 		    						!State.isUnderRiskOfCapture(s, new Position (ROOKROWFAR+3, starting.getCol()), pc.getOpposite()) &&
 		    						!State.isUnderRiskOfCapture(s, s.kingPosition(pc), pc.getOpposite()) 
@@ -623,7 +621,7 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 	    for (int[] o : offsets) {
 	    	to = new Position (starting.getRow()+o[0], starting.getCol()+o[1]);
 	    	if (to.isInRange(0, BOARDLENGTH)){
-	    		if (s.board[starting.getRow()+o[0]][starting.getCol()+o[1]].getColor()!=pc)
+	    		if (s.getCell(starting.getRow()+o[0], starting.getCol()+o[1]).getColor()!=pc)
 	    			moves.add(to);
 	    	}
 	    };
@@ -661,9 +659,9 @@ public static boolean ifWaysToAvoidMate(State state, PlayerColor pc){
 				to = new Position (starting.getRow()+i, starting.getCol()+j);
 				if (!to.isInRange(0, BOARDLENGTH))
 					break;
-				if (s.board[to.getRow()][to.getCol()].getColor()!=pc)
+				if (s.getCell(to.getRow(),to.getCol()).getColor()!=pc)
 					moves.add (to);
-			} while (s.board[to.getRow()][to.getCol()].getKind()==null);
+			} while (s.getCell(to.getRow(),to.getCol()).getKind()==null);
 			
 		return moves;
   }

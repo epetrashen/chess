@@ -1,10 +1,18 @@
 package games;
 
 public class Move{
-	 public Position from;
-	 public Position to;
+	 private Position from;
+	 private Position to;
 	 
 	public Move(){
+	}
+	
+	public Position getTo(){
+		return this.to;
+	}
+	
+	public Position getFrom(){
+		return this.from;
 	}
 
 	public Move(Position from, Position to){

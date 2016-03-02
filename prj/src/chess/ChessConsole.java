@@ -10,11 +10,29 @@ import games.Move;
 import games.PlayerColor;
 import games.Position;
 
+
+/**
+ * main bunch of rules implemented 
+ * 1. players move pieces according to turns
+ * 2.pieces are moved according to rules and the way the board is occupied (can't "jump over")
+ * 3. if the move exposes check, it's disallowed
+ * 4. if the move was previously under check, the move that does not relieve the situation is undone
+ * 5. castling is allowed if the conditions required are in place
+ * 6. if the piece is a pawn reaching the back rank, it's promoted
+ * 7. pieces are captured according to game's rules (including en passant)
+ * 8. if the move results in a stalemate or checkmate, the game is over
+ * 9. 50-move rule is implemented
+ * 10.3-fold repetition rule is implemented
+ * 
+ * @author elena.petrashen@gmail.com
+ */
+
 public class ChessConsole {
 	
 	private ChessConsole(){};
 	
 	static final int CONST_FOR_ALPHANUMERIC_CONVERSION = 96;
+	static final int CONST_FOR_3FOLD_RULE = 3;
 	
 	public static void main(String[] args) {
 		State state = new State(), newState;
@@ -38,7 +56,7 @@ public class ChessConsole {
 						numSameStates++;
 					}
 				}
-				if (numSameStates == 2)
+				if (numSameStates == CONST_FOR_3FOLD_RULE)
 					newState.setGameOverReason(GameOverReason.THREEFOLD_REPETITION_RULE);
 				else numSameStates =0;
 				
